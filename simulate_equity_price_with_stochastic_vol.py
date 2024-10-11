@@ -18,14 +18,14 @@ rho = -0.7          # Correlation between asset and variance
 V0 = 0.04           # Initial variance
 S0 = 576            # Initial SPY price
 
-# Number of simulations
-M = 500               # Number of simulated paths
+# Number of simulations/paths
+M = 10               # Number of simulated paths
 
 # Initialize arrays
-S = np.zeros((M, N+1))
-V = np.zeros((M, N+1))
-S[:, 0] = S0
-V[:, 0] = V0
+S = np.zeros((M, N+1)) # Matrix to store simulated asset prices
+V = np.zeros((M, N+1)) # Matrix to store simulated variance
+S[:, 0] = S0         # Initial asset price
+V[:, 0] = V0        # Initial variance
 
 # Cholesky decomposition for correlated Brownian motions
 corr_matrix = np.array([[1.0, rho],
@@ -33,9 +33,9 @@ corr_matrix = np.array([[1.0, rho],
 L = np.linalg.cholesky(corr_matrix)
 
 for t in range(1, N+1):
-    # Generate two independent random variables
+    # Generate two independent random variables (Z1, Z2) from standard normal distribution (brownian motions)
     Z = np.random.normal(size=(M, 2))
-    # Introduce correlation
+    # Introduce correlation between two brownian motions
     correlated_Z = Z @ L.T
     dW1 = correlated_Z[:, 0] * np.sqrt(dt)
     dW2 = correlated_Z[:, 1] * np.sqrt(dt)
@@ -44,7 +44,7 @@ for t in range(1, N+1):
     V_prev = V[:, t-1]
     V_prev_sqrt = np.sqrt(np.maximum(V_prev, 0))
 
-    # Update variance
+    # Update variance: This is the Euler discretization of the Heston model
     V[:, t] = V_prev + kappa * (theta - V_prev) * dt + sigma_v * V_prev_sqrt * dW2
     V[:, t] = np.maximum(V[:, t], 0)  # Full truncation to prevent negative variance
 
