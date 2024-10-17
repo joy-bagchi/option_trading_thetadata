@@ -1,33 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from py_vollib.black_scholes.greeks.numerical import delta
-from py_vollib.black_scholes.implied_volatility import implied_volatility
-from scipy.optimize import brentq
-from sabr_model import sabr_volatility, fit_sabr
+from pysabr import Hagan2002LognormalSABR
+from sabr_model import delta_to_strike
 
-
-def delta_to_strike(S, delta_value, T, r, sigma, option_type='call'):
-    """Convert delta to strike using an inverse relationship.
-    S: Current asset price
-    delta_value: Delta value
-    T: Time to maturity
-    r: Risk-free rate
-    sigma: Implied volatility
-    option_type: 'call' or 'put'
-    """
-
-    def objective_function(K):
-        computed_delta = delta(option_type, S, K, T, r, sigma)
-        return computed_delta - delta_value
-
-    K_min = 0.01 * S
-    K_max = 3.0 * S
-    strike = brentq(objective_function, K_min, K_max)
-    return strike
 
 # Simulate Equity Volatility Surface using SABR
-def simulate_equity_vol_surface(S, r, T_range, delta_range, V, option_type='c'  , M=1000):
+def simulate_equity_vol_surface(calibrated_sabr_model, S, r, T_range, delta_range, atm_iv, option_type='c'  , M=1000):
     """Simulate an equity volatility surface using the SABR model.
     asset_prices: Array of simulated asset prices
     r: Risk-free rate
@@ -38,23 +17,20 @@ def simulate_equity_vol_surface(S, r, T_range, delta_range, V, option_type='c'  
     M: Number of simulations
     """
 
+    # Calibrate SABR model to the ATM vol
+
     # Initialize an empty volatility surface
     vol_surfaces = np.zeros((len(T_range), len(delta_range)))
-
+    beta = 0.5 # Assume beta = 0.5 for simplicity
     # SABR Model for Smile/Skew Adjustment
     for i, T in enumerate(T_range):
         F = S  # Assume ATM forward price is S0 (adjust this as needed)
-        # Fit SABR to the ATM vol to introduce skew
-        strikes = np.linspace(0.8 * S, 1.2 * S, 50)  # Example strikes
-
-        # Fit SABR model to ATM volatility to introduce skew
-        alpha, beta, rho, nu = fit_sabr(strikes, V, F, T)
         for j, delta_value in enumerate(delta_range):
             # Use delta-to-strike conversion (this remains the same)
-            K = delta_to_strike(S, delta_value, T, r, V, option_type)
+            K = delta_to_strike(S, delta_value, T, r, atm_iv, option_type)
 
             # Calculate implied vol for each strike using the SABR model
-            sabr_iv = sabr_volatility(K, F, T, alpha, beta, rho, nu)
+            sabr_iv = calibrated_sabr_model.lognormal_vol(K)
 
             # Store the SABR-implied vol in the surface
             vol_surfaces[i, j] = sabr_iv

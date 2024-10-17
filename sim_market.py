@@ -2,7 +2,7 @@ import numpy as np
 import timeit
 from simulate_equity_vol_surface import simulate_equity_vol_surface, plot_vol_surface
 from simulate_equity_price_with_stochastic_vol import simulate_equity_price_with_stochastic_vol
-
+from sabr_model import calibrate_sabr_model
 # Seed for reproducibility
 np.random.seed(42)
 
@@ -26,16 +26,19 @@ S0 = 576            # Initial SPY price
 # Vol Surface parameters for SABR
 r = 0.05  # Risk-free rate
 T_range = np.arange(1/252, 10/252, 1/252)  # Maturities from 1 to 10 days
-delta_range = np.arange(0.30, 0.71, 0.05)  # Delta range from 30 to 70
+delta_range = np.arange(0.30, 0.51, 0.05)  # Delta range from 30 to 70
+_vols = np.array([0.25, 0.22, 0.20, 0.21, 0.23])  # Implied volatilities
+
 option_type = 'c'  # 'c' for call options and 'p' for put options
 
 
 def run_sim():
+    sabr = calibrate_sabr_model(S0, r, T, delta_range, _vols, 0.25, option_type)
     S, V = simulate_equity_price_with_stochastic_vol(mu, kappa, theta, sigma_v, rho, V0, S0, T, N, M)
     VS = np.zeros((M, N+1, len(T_range), len(delta_range)))
     for i in range(M):
         for j in range(N):
-            VS[i,j] = simulate_equity_vol_surface(S[i,j], r, T_range, delta_range, V[i,j], option_type)
+            VS[i,j] = simulate_equity_vol_surface(sabr, S[i,j], r, T_range, delta_range, V[i,j], option_type)
     # plot_vol_surface(T_range, delta_range, VS[0,0])
     return S, V, VS
 

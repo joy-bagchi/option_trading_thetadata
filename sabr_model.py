@@ -1,31 +1,46 @@
-def sabr_volatility(K, F, T, alpha, beta, rho, nu):
+import numpy as np
+from pysabr import Hagan2002LognormalSABR
+from scipy.optimize import brentq
+from py_vollib.black_scholes.greeks.numerical import delta
+
+
+def delta_to_strike(S, delta_value, T, r, sigma, option_type='call'):
+    """Convert delta to strike using an inverse relationship.
+    S: Current asset price
+    delta_value: Delta value
+    T: Time to maturity
+    r: Risk-free rate
+    sigma: Implied volatility
+    option_type: 'call' or 'put'
     """
-    Compute the SABR model volatility for a given strike (K), forward (F), and parameters.
+    def objective_function(K):
+        computed_delta = delta(option_type, S, K, T, r, sigma)
+        return computed_delta - delta_value
+
+    K_min = 0.01 * S
+    K_max = 3.0 * S
+    strike = brentq(objective_function, K_min, K_max)
+    return strike
+
+
+def calibrate_sabr_model(S, r, T, delta_range, market_vols, atm_iv, option_type='c'):
+    """Calibrate the SABR model to the ATM volatility.
+    S: Current asset price
+    r: Risk-free rate
+    T: Time to maturity
+    delta: Delta value
+    atm_iv: ATM implied volatility
+    option_type: 'c' for call options and 'p' for put options
     """
-    from math import log, sqrt
+    assert len(delta_range) == len(market_vols), "Mismatch between delta_range and market_vols length"
 
-    # If the option is ATM, we use a simplified form of the SABR model
-    if F == K:
-        return alpha / (F ** (1 - beta))
+    # Initial guess for beta
+    _beta = 0.5
 
-    # SABR model for non-ATM strikes
-    z = (nu / alpha) * ((F * K) ** ((1 - beta) / 2)) * log(F / K)
-    x_z = log((sqrt(1 - 2 * rho * z + z**2) + z - rho) / (1 - rho))
+    # SABR Model for Smile/Skew Adjustment
+    _sabr = Hagan2002LognormalSABR(S, S, T, atm_iv, _beta, rho=-0.25, volvol=0.3)
+    strikes = [delta_to_strike(S, delta_value, T, r, atm_iv, option_type) for delta_value in delta_range]
+    # Fit SABR to the ATM vol to introduce skew
+    _alpha, _rho, _nu = _sabr.fit(strikes, market_vols)
 
-    # Full SABR volatility calculation
-    iv =  (alpha / ((K * F) ** ((1 - beta) / 2))) * (z / x_z)
-    return iv
-
-def fit_sabr(strikes, vols, F, T):
-    """
-    Fit SABR parameters (alpha, beta, rho, nu) to a given set of strike-vol pairs.
-    """
-    # You will likely want to use an optimizer to fit alpha, beta, rho, and nu.
-    # For simplicity, we'll assume you use an optimizer here that returns these parameters.
-    # Here, we're using placeholder values
-    alpha = 0.2  # Volatility of volatility
-    beta = 0.5   # Usually between 0 and 1 (often set around 1 for lognormal dynamics)
-    rho = -0.5   # Correlation between price and volatility
-    nu = 0.4     # Volatility of volatility
-
-    return alpha, beta, rho, nu
+    return Hagan2002LognormalSABR(S, S, T, atm_iv, _beta, rho=_rho, volvol=_nu)

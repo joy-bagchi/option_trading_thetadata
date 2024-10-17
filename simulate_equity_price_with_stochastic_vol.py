@@ -80,3 +80,25 @@ def plot_equity_price_and_volatility(S, V, T, N, M):
 
     plt.tight_layout()
     plt.show()
+
+# Seed for reproducibility
+np.random.seed(42)
+
+# Parameters
+M = 1  # Number of simulations
+T = 10.0  # Total simulation time in years
+N = 252  # Number of time steps (daily)
+# Heston model parameters
+mu = 0.07  # Drift
+kappa = 2.0  # Speed of mean reversion for variance
+theta = 0.0121  # Long-term variance
+sigma_v = 0.3  # Volatility of variance
+rho = -0.7  # Correlation between asset and variance
+V0 = 0.03  # Initial variance
+S0 = 576  # Initial SPY price
+
+
+# Simulate equity price and volatility
+# S, V = simulate_equity_price_with_stochastic_vol(mu, kappa, theta, sigma_v, rho, V0, S0, T, N, M)
+# Plot simulated equity price and volatility paths
+# plot_equity_price_and_volatility(S, V, T, N, M)
