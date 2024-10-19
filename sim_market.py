@@ -1,11 +1,13 @@
 import numpy as np
-import timeit
+from sqlalchemy.testing.plugin.plugin_base import logging
+from timeit_decorator import timeit
 from simulate_equity_vol_surface import simulate_equity_vol_surface, plot_vol_surface
 from simulate_equity_price_with_stochastic_vol import simulate_equity_price_with_stochastic_vol
 from sabr_model import calibrate_sabr_model
 # Seed for reproducibility
 np.random.seed(42)
-
+import logging
+logging.basicConfig(level=logging.INFO)
 
 #Parameters:
 M = 1  # Number of simulations
@@ -27,11 +29,12 @@ S0 = 576            # Initial SPY price
 r = 0.05  # Risk-free rate
 T_range = np.arange(1/252, 10/252, 1/252)  # Maturities from 1 to 10 days
 delta_range = np.arange(0.30, 0.51, 0.05)  # Delta range from 30 to 70
-_vols = np.array([0.25, 0.22, 0.20, 0.21, 0.23])  # Implied volatilities
+_vols = np.array([0.1472, 0.1537, 0.1609, 0.1706, 0.1796])  # Implied volatilities
+print(delta_range, _vols)
 
 option_type = 'c'  # 'c' for call options and 'p' for put options
 
-
+@timeit(log_level=logging.DEBUG)
 def run_sim():
     sabr = calibrate_sabr_model(S0, r, T, delta_range, _vols, 0.25, option_type)
     S, V = simulate_equity_price_with_stochastic_vol(mu, kappa, theta, sigma_v, rho, V0, S0, T, N, M)

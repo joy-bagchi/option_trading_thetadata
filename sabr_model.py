@@ -1,10 +1,14 @@
+from sqlalchemy.testing.plugin.plugin_base import logging
+from timeit_decorator import timeit
+import logging
 import numpy as np
+from numpy import ndarray
 from pysabr import Hagan2002LognormalSABR
 from scipy.optimize import brentq
 from py_vollib.black_scholes.greeks.numerical import delta
 
-
-def delta_to_strike(S, delta_value, T, r, sigma, option_type='call'):
+logging.basicConfig(level=logging.INFO)
+def delta_to_strike(S: float, delta_value: float, T: float, r: float, sigma: float, option_type: str='c') -> float:
     """Convert delta to strike using an inverse relationship.
     S: Current asset price
     delta_value: Delta value
@@ -22,16 +26,12 @@ def delta_to_strike(S, delta_value, T, r, sigma, option_type='call'):
     strike = brentq(objective_function, K_min, K_max)
     return strike
 
+@timeit(log_level=logging.DEBUG)
+def calibrate_sabr_model(S: float , r: float, T: float,
+                         delta_range: ndarray, market_vols: ndarray, atm_iv: float, option_type: str='c')\
+        -> Hagan2002LognormalSABR:
 
-def calibrate_sabr_model(S, r, T, delta_range, market_vols, atm_iv, option_type='c'):
-    """Calibrate the SABR model to the ATM volatility.
-    S: Current asset price
-    r: Risk-free rate
-    T: Time to maturity
-    delta: Delta value
-    atm_iv: ATM implied volatility
-    option_type: 'c' for call options and 'p' for put options
-    """
+
     assert len(delta_range) == len(market_vols), "Mismatch between delta_range and market_vols length"
 
     # Initial guess for beta

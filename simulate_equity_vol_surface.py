@@ -1,10 +1,13 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
-from pysabr import Hagan2002LognormalSABR
+from timeit_decorator import timeit
 from sabr_model import delta_to_strike
 
 
+@timeit(log_level=logging.DEBUG)
 # Simulate Equity Volatility Surface using SABR
 def simulate_equity_vol_surface(calibrated_sabr_model, S, r, T_range, delta_range, atm_iv, option_type='c'  , M=1000):
     """Simulate an equity volatility surface using the SABR model.

@@ -1,8 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
+from timeit_decorator import timeit
 
-
+@timeit(log_level=logging.DEBUG)
 def simulate_equity_price_with_stochastic_vol(mu, kappa, theta, sigma_v, rho, V0, S0, T, N, M):
     """ Simulate equity price paths using the Heston model.
         mu: Drift
